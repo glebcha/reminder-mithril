@@ -7,12 +7,12 @@
 
 #### Запуск:
 
-Поиграться http://glebcha.github.io/reminder-mithril/
+#####Демо http://glebcha.github.io/reminder-mithril/
 
 #### Изменение:
 
 * Качаем http://nodejs.org/ NodeJS
-* Качаем http://gulpjs.com/ Gulp
+* Читаем про http://gulpjs.com/ Gulp
 
 1 - после установки node.js запускаем командную строку
 
