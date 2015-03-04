@@ -1,0 +1,155 @@
+﻿// Fonts
+@helvetica: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+// Colors
+@black: #000;
+@white: #fff;
+@light-white: #b3b3b3;
+@gray: #ccc;
+@light-gray: #a9a9a9;
+@dark-gray: #999;
+
+// Mixins
+
+.relative {
+	position: relative;;
+}
+.absolute {
+	position: absolute;
+}
+
+.break-word {
+  word-wrap: break-word;
+}
+.centered {
+  margin: 0 auto;
+}
+.block {
+	display: block;
+}
+.inline-block {
+	display: inline-block;
+	vertical-align: top;
+}
+.inline {
+  display: inline;
+}
+.inline-block-middle {
+	display: inline-block;
+	vertical-align: middle;
+}
+.inline-block-bottom {
+  display: inline-block;
+  vertical-align: bottom;
+}
+.normal {
+	font-weight: 400;
+}
+.bold {
+	font-weight: 700;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+
+.danger {
+  color: #CB1F1F;
+}
+
+// Floats
+
+.clearfix {
+  &:before,
+  &:after {
+    content: " "; 
+    display: table; 
+  }
+  &:after {
+    clear: both;
+  }
+}
+.pull-right {
+  float: right !important;
+}
+.pull-left {
+  float: left !important;
+}
+
+// Text align
+
+.text-left {
+	text-align: left;
+}
+.text-center {
+	text-align: center;
+}
+.text-right {
+	text-align: right;
+}
+
+// Toggling content
+
+.hide {
+  display: none !important;
+}
+.show {
+  display: block !important;
+}
+
+// Columns
+
+.makeIndexProp(@max, @class-prefix, @i:1) when (@i <= @max) {
+  .@{class-prefix}@{i} {
+    float: left;
+  }
+  .makeIndexProp(@max, @class-prefix, @i:(@i+1));
+}
+.makeIndexProp(12, col-);
+
+    .col-12 {
+        width: 100%
+    }
+
+    .col-11 {
+        width: 91.66666667%
+    }
+
+    .col-10 {
+        width: 83.33333333%
+    }
+
+    .col-9 {
+        width: 75%
+    }
+
+    .col-8 {
+        width: 66.66666667%
+    }
+
+    .col-7 {
+        width: 58.33333333%
+    }
+
+    .col-6 {
+        width: 50%
+    }
+
+    .col-5 {
+        width: 41.66666667%
+    }
+
+    .col-4 {
+        width: 33.33333333%
+    }
+
+    .col-3 {
+        width: 25%
+    }
+
+    .col-2 {
+        width: 16.66666667%
+    }
+
+    .col-1 {
+        width: 8.33333333%
+    }
