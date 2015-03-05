@@ -35,7 +35,7 @@ reminder.controller = function() {
 
     // Храним значения напоминания до его создания
     this.description = m.prop("");
-    this.date = m.prop("");
+
 
     // Добавляем напоминание в список и обновляем коллекцию
     this.MAX_STRING_LENGTH = 100; // В константе указываем максимальное число символов, доступное в поле ввода
@@ -48,7 +48,6 @@ reminder.controller = function() {
             }));
             reminder.storage.set(this.list);
             this.description("");
-            this.date("");
         }
     };
 };
