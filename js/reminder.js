@@ -107,7 +107,9 @@ reminder.view = (function() {
     }
 })();
 
-// Инициализируем приложение
+// Инициализируем приложение. 
+// В данном примере для наглядности использован анонимный модуль, 
+// но рекомендуется использовать пространство имен и вместо {...} указать reminder.
 m.module(document.getElementById('reminderapp'), {
     controller: reminder.controller, 
     view: reminder.view
