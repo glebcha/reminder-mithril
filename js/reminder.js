@@ -146,7 +146,7 @@ reminder.view = (function() {
                                         innerStatus = this.parentNode.querySelector(".inner-status");
 
                                     if (e.keyCode === 13) {
-                                        ctrl.edit.apply(task, [index, ctrl]);
+                                        ctrl.edit.call(task, index, ctrl);
                                         this.className = "hide";
                                         descr.className = descr.className.replace("hide", "").trim();
                                         innerStatus.className = innerStatus.className.replace("show", "").trim();
