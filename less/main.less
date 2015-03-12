@@ -132,6 +132,29 @@ body {
 			.transition(color 0.4s);
 		}
 
+		textarea {
+  			width: 100%;
+  			padding: 0;
+  			background: #ecf0f1;
+  			outline: none;
+  			border: none;
+  			resize: none;
+		}
+
+		[data-error="true"] {
+			.relative;
+			color: red;
+
+			&:after {
+				.absolute;
+				.block;
+				bottom: -20px;
+				left: 0;
+				font-size: 12px;
+				content: 'повторите, не превышая лимит символов';
+			}
+		}
+
 		.destroy {
 			.hide;
 			.absolute;
@@ -144,7 +167,7 @@ body {
 			font-size: 22px;
 			color: #dadedf;
 			cursor: pointer;
-			.transition(all 0.2s);
+			.transition(all .2s);
 
 			&:after {
 				content: '✖';
@@ -152,6 +175,26 @@ body {
 
 			&:hover {
 				.transform( scale(1.3) );
+			}
+		}
+
+		.description {
+			.block;
+		}
+
+		.inner-status {
+			.absolute;
+			display: none;
+			left: 0;
+			right: 0;
+			bottom: 14px;
+			font-size: 12px;
+			width: 40px;
+			margin: 0 auto;
+			.text-center;
+
+			&.error {
+				color: red;
 			}
 		}
 
@@ -175,5 +218,9 @@ body {
   		font-size: 20px;
   		.bold;
   		.text-center;
+
+  		&:last-child {
+  			font-size: 17px;
+  		}
 	}
 }

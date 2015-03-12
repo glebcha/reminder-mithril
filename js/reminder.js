@@ -5,6 +5,8 @@ var reminder = reminder || {};
 reminder.Remind = function(data) {
     this.description = m.prop(data.description);
     this.date = m.prop(data.date);
+    this.edited = m.prop(data.edited);
+    this.error = m.prop(data.error);
 };
 
 
@@ -36,18 +38,32 @@ reminder.controller = function() {
     // Храним значения напоминания до его создания
     this.description = m.prop("");
 
-
     // Добавляем напоминание в список и обновляем коллекцию
     this.MAX_STRING_LENGTH = 100; // В константе указываем максимальное число символов, доступное в поле ввода
     this.add = function() {
         // С помощью регулярки убираем пробелы и считаем количество символов без них
-        if (this.description() && this.description().replace(/\s/g, '').length <= this.MAX_STRING_LENGTH) {
+        if (this.description()  && this.description().replace(/\s/g, '').length <= this.MAX_STRING_LENGTH) {
             this.list.push(new reminder.Remind({
-                description: this.description(),
-                date: moment.utc().format() // Записываем дату в формате UTC, чтобы учитывать часовой пояс
+                description: this.description(this.description().trim()),
+                date: moment.utc().format(), // Записываем дату в формате UTC, чтобы учитывать часовой пояс
+                edited: false,
+                error: false
             }));
             reminder.storage.set(this.list);
             this.description("");
+        } 
+    };
+
+    this.edit = function(index, ctrl) {
+        if (this.description() && this.description().replace(/\s/g, '').length <= ctrl.MAX_STRING_LENGTH) {
+            this.description(this.description().trim());
+            this.date(moment.utc().format());
+            this.edited(true);
+            this.error(false);
+            reminder.storage.set(ctrl.list);
+        } else {
+            this.error(true);
+            this.description(reminder.storage.get()[index].description);
         }
     };
 };
@@ -58,6 +74,7 @@ reminder.view = (function() {
         return m("div.tasks-container", [
            m('h1', 'Напоминания'),
             m("input.add-remind[placeholder='Текст напоминания']", {
+                "autofocus": true,
                 // Обрабатываем нажатия на ENTER/ESCAPE для добавления напоминания/очистки поля ввода
                 onkeyup: function(e){
                     if (e.keyCode === 13) {
@@ -74,11 +91,11 @@ reminder.view = (function() {
                 // В этом блоке выполняем все в контексте данного элемента после того как отрендерится представление
                 config: function (el, isInit, context) {
                     var status = document.getElementById("input-status");
-                    el.focus();
+                    //el.focus();
                     if(ctrl.description().replace(/\s/g, '').length <= ctrl.MAX_STRING_LENGTH) {
                         // Пока не превысили допустимое количество символов будет показывать сколько их еще можно использовать
                         status.innerHTML = "осталось " + (ctrl.MAX_STRING_LENGTH - ctrl.description().replace(/\s/g, '').length) + " символов";
-                    } else{
+                    } else {
                         // Когда превышено допустимое число символов мы сразу же об этом прокричим
                         status.innerHTML = "<span class='danger'>превышен допустимый лимит в " + ctrl.MAX_STRING_LENGTH + " символов</span>" ;
                     }   
@@ -91,7 +108,82 @@ reminder.view = (function() {
             m("ul#todo-list", [
                 ctrl.list.map(function(task, index) {
                     return m("li", [ 
-                        m("label", { "data-date": task.date() }, task.description(), [
+                        m("label", { "data-date": task.date() }, [
+                            m("div.description",  {
+                                "data-edited": task.edited(),
+                                "data-error": task.error(), 
+                                config: function(el, isInit, context){
+                                    var inputField = el.parentNode.querySelector("textarea"),
+                                        innerStatus = el.parentNode.querySelector(".inner-status");
+                                    
+                                    if(el.offsetHeight > 0){
+                                        inputField.style.height = el.offsetHeight + "px";
+                                    } else {
+                                        inputField.style.height = "auto";
+                                    }
+                                        
+                                    el.addEventListener('dblclick', function(){
+
+                                        inputField.className = "show";
+
+                                        if(!innerStatus.className.match("show")){
+                                            innerStatus.className = "inner-status show";
+                                        }
+
+                                        if(!el.className.match("hide")){
+                                            el.className += " hide";
+                                        }
+                                        inputField.focus();
+                                    });
+                                } 
+                            }, task.description()),
+                            m("textarea.hide", {
+                                "rows": 1,
+                                oninput: m.withAttr("value", task.description),
+                                onkeyup: function(e){
+                                    var prev = reminder.storage.get()[index].description,
+                                        descr = this.parentNode.querySelector(".description"),
+                                        innerStatus = this.parentNode.querySelector(".inner-status");
+
+                                    if (e.keyCode === 13) {
+                                        ctrl.edit.call(task, index, ctrl);
+                                        this.className = "hide";
+                                        descr.className = descr.className.replace("hide", "").trim();
+                                        innerStatus.className = innerStatus.className.replace("show", "").trim();
+                                    } else if (e.keyCode === 27) {  
+                                        task.description(prev);
+                                        this.value = prev;
+                                        this.className = "hide";
+                                        descr.className = descr.className.replace("hide", "").trim();
+                                        innerStatus.className = innerStatus.className.replace("show", "").trim();
+                                    } else {
+                                        m.redraw.strategy("none");
+                                    }
+                                },
+                                onblur: function(){
+                                    var prev = reminder.storage.get()[index].description,
+                                        descr = this.parentNode.querySelector(".description"),
+                                        innerStatus = this.parentNode.querySelector(".inner-status");
+
+                                        task.description(prev);
+                                        this.value = prev;
+                                        this.className = "hide";
+                                        descr.className = descr.className.replace("hide", "").trim();
+                                        innerStatus.className = innerStatus.className.replace("show", "").trim();                                  
+                                },
+                                config: function(el, isInit, context){
+                                    var innerStatus = el.parentNode.querySelector(".inner-status");
+                                    el.focus();
+                                    innerStatus.innerHTML = (ctrl.MAX_STRING_LENGTH - task.description().replace(/\s/g, '').length);
+                                    //if(el.scrollHeight != 0){
+                                        el.style.minHeight = el.scrollHeight + "px";
+                                    //}
+                                    if (task.description().replace(/\s/g, '').length >= ctrl.MAX_STRING_LENGTH && !innerStatus.className.match("error")) {
+                                        innerStatus.className += " error";
+                                    }
+                                } 
+                            }, task.description()),
+                            m("span.inner-status"),
                             m("span.date", moment.utc(task.date()).fromNow())
                         ]),
                         m('span.destroy', {

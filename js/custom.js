@@ -5,7 +5,7 @@
 			for (var i = 0; i < tasks.length; i++) {
 				var task = tasks[i],
 					date = task.getAttribute("data-date");
-				task.querySelector("span").innerText = moment.utc(date).fromNow();
+				task.querySelector(".date").innerText = moment.utc(date).fromNow();
 			};
 		}
 	};
