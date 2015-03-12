@@ -51,12 +51,12 @@ var m = (function app(window, undefined) {
 		if (classes.length > 0) cell.attrs[classAttrName] = classes.join(" ");
 
 
-		var children = hasAttrs ? args[2] : args[1];
-		if (type.call(children) === ARRAY) {
-			cell.children = children
+		var children = hasAttrs ? args.slice(2) : args.slice(1);
+		if (children.length === 1 && type.call(children[0]) === ARRAY) {
+			cell.children = children[0]
 		}
 		else {
-			cell.children = hasAttrs ? args.slice(2) : args.slice(1)
+			cell.children = children
 		}
 
 		for (var attrName in attrs) {
@@ -94,7 +94,7 @@ var m = (function app(window, undefined) {
 		//- this prevents lifecycle surprises from procedural helpers that mix implicit and explicit return statements (e.g. function foo() {if (cond) return m("div")}
 		//- it simplifies diffing code
 		//data.toString() is null if data is the return value of Console.log in Firefox
-		if (data == null || data.toString() == null) data = "";
+		try {if (data == null || data.toString() == null) data = "";} catch (e) {data = ""}
 		if (data.subtree === "retain") return cached;
 		var cachedType = type.call(cached), dataType = type.call(data);
 		if (cached == null || cachedType !== dataType) {
@@ -117,6 +117,7 @@ var m = (function app(window, undefined) {
 				if (type.call(data[i]) === ARRAY) {
 					data = data.concat.apply([], data);
 					i-- //check current index again and flatten until there are no more nested arrays at that index
+					len = data.length
 				}
 			}
 			
@@ -209,7 +210,7 @@ var m = (function app(window, undefined) {
 					//fix offset of next element if item was a trusted string w/ more than one html element
 					//the first clause in the regexp matches elements
 					//the second clause (after the pipe) matches text nodes
-					subArrayCount += (item.match(/<[^\/]|\>\s*[^<]/g) || []).length
+					subArrayCount += (item.match(/<[^\/]|\>\s*[^<]|&/g) || []).length
 				}
 				else subArrayCount += type.call(item) === ARRAY ? item.length : 1;
 				cached[cacheCount++] = item
@@ -237,7 +238,7 @@ var m = (function app(window, undefined) {
 			var dataAttrKeys = Object.keys(data.attrs)
 			var hasKeys = dataAttrKeys.length > ("key" in data.attrs ? 1 : 0)
 			//if an element is different enough from the one in cache, recreate it
-			if (data.tag != cached.tag || dataAttrKeys.join() != Object.keys(cached.attrs).join() || data.attrs.id != cached.attrs.id) {
+			if (data.tag != cached.tag || dataAttrKeys.join() != Object.keys(cached.attrs).join() || data.attrs.id != cached.attrs.id || (m.redraw.strategy() == "all" && cached.configContext && cached.configContext.retain !== true) || (m.redraw.strategy() == "diff" && cached.configContext && cached.configContext.retain === false)) {
 				if (cached.nodes.length) clear(cached.nodes);
 				if (cached.configContext && typeof cached.configContext.onunload === FUNCTION) cached.configContext.onunload()
 			}
@@ -273,7 +274,7 @@ var m = (function app(window, undefined) {
 			}
 			//schedule configs to be called. They are called after `build` finishes running
 			if (typeof data.attrs["config"] === FUNCTION) {
-				var context = cached.configContext = cached.configContext || {};
+				var context = cached.configContext = cached.configContext || {retain: m.redraw.strategy() == "diff"};
 
 				// bind
 				var callback = function(data, args) {
@@ -284,7 +285,7 @@ var m = (function app(window, undefined) {
 				configs.push(callback(data, [node, !isNew, context, cached]))
 			}
 		}
-		else if (typeof dataType != FUNCTION) {
+		else if (typeof data != FUNCTION) {
 			//handle text nodes
 			var nodes;
 			if (cached.nodes.length === 0) {
@@ -360,7 +361,7 @@ var m = (function app(window, undefined) {
 					//handle cases that are properties (but ignore cases where we should use setAttribute instead)
 					//- list and form are typically used as strings, but are DOM element references in js
 					//- when using CSS selectors (e.g. `m("[style='']")`), style is used as a string, but it's an object in js
-					else if (attrName in node && !(attrName === "list" || attrName === "style" || attrName === "form" || attrName === "type")) {
+					else if (attrName in node && !(attrName === "list" || attrName === "style" || attrName === "form" || attrName === "type" || attrName === "width" || attrName === "height")) {
 						//#348 don't set the value if not needed otherwise cursor placement breaks in Chrome
 						if (tag !== "input" || node[attrName] !== dataAttr) node[attrName] = dataAttr
 					}
@@ -390,7 +391,10 @@ var m = (function app(window, undefined) {
 		if (nodes.length != 0) nodes.length = 0
 	}
 	function unload(cached) {
-		if (cached.configContext && typeof cached.configContext.onunload === FUNCTION) cached.configContext.onunload();
+		if (cached.configContext && typeof cached.configContext.onunload === FUNCTION) {
+			cached.configContext.onunload();
+			cached.configContext.onunload = null
+		}
 		if (cached.children) {
 			if (type.call(cached.children) === ARRAY) {
 				for (var i = 0, child; child = cached.children[i]; i++) unload(child)
@@ -539,10 +543,9 @@ var m = (function app(window, undefined) {
 	m.redraw.strategy = m.prop();
 	var blank = function() {return ""}
 	function redraw() {
-		var forceRedraw = m.redraw.strategy() === "all";
 		for (var i = 0, root; root = roots[i]; i++) {
 			if (controllers[i]) {
-				m.render(root, modules[i].view ? modules[i].view(controllers[i]) : blank(), forceRedraw)
+				m.render(root, modules[i].view ? modules[i].view(controllers[i]) : blank())
 			}
 		}
 		//after rendering within a routed context, we need to scroll back to the top, and fetch the document title for history.pushState
@@ -604,13 +607,19 @@ var m = (function app(window, undefined) {
 			window[listener]()
 		}
 		//config: m.route
-		else if (arguments[0].addEventListener) {
+		else if (arguments[0].addEventListener || arguments[0].attachEvent) {
 			var element = arguments[0];
 			var isInitialized = arguments[1];
 			var context = arguments[2];
 			element.href = (m.route.mode !== 'pathname' ? $location.pathname : '') + modes[m.route.mode] + this.attrs.href;
-			element.removeEventListener("click", routeUnobtrusive);
-			element.addEventListener("click", routeUnobtrusive)
+			if (element.addEventListener) {
+				element.removeEventListener("click", routeUnobtrusive);
+				element.addEventListener("click", routeUnobtrusive)
+			}
+			else {
+				element.detachEvent("onclick", routeUnobtrusive);
+				element.attachEvent("onclick", routeUnobtrusive)
+			}
 		}
 		//m.route(route, params)
 		else if (type.call(arguments[0]) === STRING) {
@@ -633,7 +642,10 @@ var m = (function app(window, undefined) {
 				};
 				redirect(modes[m.route.mode] + currentRoute)
 			}
-			else $location[m.route.mode] = currentRoute
+			else {
+				$location[m.route.mode] = currentRoute
+				redirect(modes[m.route.mode] + currentRoute)
+			}
 		}
 	};
 	m.route.param = function(key) {
@@ -651,6 +663,15 @@ var m = (function app(window, undefined) {
 		if (queryStart !== -1) {
 			routeParams = parseQueryString(path.substr(queryStart + 1, path.length));
 			path = path.substr(0, queryStart)
+		}
+
+		// Get all routes and check if there's
+		// an exact match for the current path
+		var keys = Object.keys(router);
+		var index = keys.indexOf(path);
+		if(index !== -1){
+			m.module(root, router[keys [index]]);
+			return true;
 		}
 
 		for (var route in router) {
@@ -677,8 +698,9 @@ var m = (function app(window, undefined) {
 		if (e.ctrlKey || e.metaKey || e.which === 2) return;
 		if (e.preventDefault) e.preventDefault();
 		else e.returnValue = false;
-		var currentTarget = e.currentTarget || this;
+		var currentTarget = e.currentTarget || e.srcElement;
 		var args = m.route.mode === "pathname" && currentTarget.search ? parseQueryString(currentTarget.search.slice(1)) : {};
+		while (currentTarget && currentTarget.nodeName.toUpperCase() != "A") currentTarget = currentTarget.parentNode
 		m.route(currentTarget[m.route.mode].slice(modes[m.route.mode].length), args)
 	}
 	function setScroll() {
@@ -723,7 +745,8 @@ var m = (function app(window, undefined) {
 		var prop = m.prop();
 		promise.then(prop);
 		prop.then = function(resolve, reject) {
-			return propify(promise.then(resolve, reject))
+			promise = promise.then(resolve, reject).then(prop);
+			return prop;
 		};
 		return prop
 	}
@@ -989,7 +1012,7 @@ var m = (function app(window, undefined) {
 			try {
 				e = e || event;
 				var unwrap = (e.type === "load" ? xhrOptions.unwrapSuccess : xhrOptions.unwrapError) || identity;
-				var response = unwrap(deserialize(extract(e.target, xhrOptions)));
+				var response = unwrap(deserialize(extract(e.target, xhrOptions)), e.target);
 				if (e.type === "load") {
 					if (type.call(response) === ARRAY && xhrOptions.type) {
 						for (var i = 0; i < response.length; i++) response[i] = new xhrOptions.type(response[i])
