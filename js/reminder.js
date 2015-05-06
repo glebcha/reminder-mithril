@@ -1,7 +1,7 @@
 'use strict';
 var reminder = reminder || {};
 
-// Задаем свойства класса Remind
+// Define properties of Remind class
 reminder.Remind = function(data) {
     this.description = m.prop(data.description);
     this.date = m.prop(data.date);
@@ -11,10 +11,10 @@ reminder.Remind = function(data) {
 
 
 (function(){
-    // Константа с именем списка напоминаний для хранения в localStorage
+    // Constant with name of notifications list stored in localStorage
     var STORAGE_ID = 'task-list';
 
-    // Геттер/сеттер для работы со списком напоминаний в localStorage
+    // Getter/Setter to operate notifications list stored in localStorage
     reminder.storage = {
         get: function () {
             return JSON.parse(localStorage.getItem(STORAGE_ID) || '[]');
@@ -27,25 +27,25 @@ reminder.Remind = function(data) {
 
 reminder.controller = function() {
 
-    // Забираем из localStorage объект с напоминаниями 
+    // Get notifications object from localStorage 
     this.list = reminder.storage.get();
 
-    // Создаем коллекцию
+    // Create collection
     this.list = this.list.map(function(item) {
         return new reminder.Remind(item);
     });
 
-    // Храним значения напоминания до его создания
+    // Temporary value storage (until we create notification)
     this.description = m.prop("");
 
-    // Добавляем напоминание в список и обновляем коллекцию
-    this.MAX_STRING_LENGTH = 100; // В константе указываем максимальное число символов, доступное в поле ввода
+    // Add notification in list and update collection
+    this.MAX_STRING_LENGTH = 100; // Caonstant define max chars value to input 
     this.add = function() {
-        // С помощью регулярки убираем пробелы и считаем количество символов без них
+        // Remove whitespaces and count chars with a help of regex
         if (this.description()  && this.description().replace(/\s/g, '').length <= this.MAX_STRING_LENGTH) {
             this.list.push(new reminder.Remind({
                 description: this.description(this.description().trim()),
-                date: moment.utc().format(), // Записываем дату в формате UTC, чтобы учитывать часовой пояс
+                date: moment.utc().format(), // Write UTC-formatted date, so we can take into account timezone
                 edited: false,
                 error: false
             }));
@@ -68,36 +68,36 @@ reminder.controller = function() {
     };
 };
 
-// Создаем представление
+// Create view
 reminder.view = (function() {
     return function(ctrl) {
         return m("div.tasks-container", [
-           m('h1', 'Напоминания'),
-            m("input.add-remind[placeholder='Текст напоминания']", {
+           m('h1', 'Notifications'),
+            m("input.add-remind[placeholder='Notification text']", {
                 "autofocus": true,
-                // Обрабатываем нажатия на ENTER/ESCAPE для добавления напоминания/очистки поля ввода
+                // Process ENTER/ESCAPE keys to add notification/clear input field
                 onkeyup: function(e){
                     if (e.keyCode === 13) {
                         ctrl.add();
                     } else if (e.keyCode === 27) {
                         ctrl.description("");
                     } else {
-                        // Не будем рендерить лишний раз
+                        // Won't render if it's not necessary
                        m.redraw.strategy("none");
                     }
                 },
                 oninput: m.withAttr("value", ctrl.description), 
                 value: ctrl.description(),
-                // В этом блоке выполняем все в контексте данного элемента после того как отрендерится представление
+                // This block keep context of current element and is processed after element render completed
                 config: function (el, isInit, context) {
                     var status = document.getElementById("input-status");
                     //el.focus();
                     if(ctrl.description().replace(/\s/g, '').length <= ctrl.MAX_STRING_LENGTH) {
-                        // Пока не превысили допустимое количество символов будет показывать сколько их еще можно использовать
+                        // Indicate amount of chars left until max value exceed
                         status.innerHTML = "осталось " + (ctrl.MAX_STRING_LENGTH - ctrl.description().replace(/\s/g, '').length) + " символов";
                     } else {
-                        // Когда превышено допустимое число символов мы сразу же об этом прокричим
-                        status.innerHTML = "<span class='danger'>превышен допустимый лимит в " + ctrl.MAX_STRING_LENGTH + " символов</span>" ;
+                        // Show warning if max char value exceed
+                        status.innerHTML = "<span class='danger'>limit of " + ctrl.MAX_STRING_LENGTH + " characters exceed</span>" ;
                     }   
                 }
             }),
@@ -199,9 +199,9 @@ reminder.view = (function() {
     }
 })();
 
-// Инициализируем приложение. 
-// В данном примере для наглядности использован анонимный модуль, 
-// но рекомендуется использовать пространство имен и вместо {...} указать reminder.
+// Application initialization. 
+// This example use anonymous module, 
+// but it is recommended to use namespace reminder instead {...} .
 m.module(document.getElementById('reminderapp'), {
     controller: reminder.controller, 
     view: reminder.view
