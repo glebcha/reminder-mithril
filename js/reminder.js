@@ -94,7 +94,7 @@ reminder.view = (function() {
                     //el.focus();
                     if(ctrl.description().replace(/\s/g, '').length <= ctrl.MAX_STRING_LENGTH) {
                         // Indicate amount of chars left until max value exceed
-                        status.innerHTML = "осталось " + (ctrl.MAX_STRING_LENGTH - ctrl.description().replace(/\s/g, '').length) + " символов";
+                        status.innerHTML = (ctrl.MAX_STRING_LENGTH - ctrl.description().replace(/\s/g, '').length) + " characters left";
                     } else {
                         // Show warning if max char value exceed
                         status.innerHTML = "<span class='danger'>limit of " + ctrl.MAX_STRING_LENGTH + " characters exceed</span>" ;
